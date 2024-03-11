@@ -10,9 +10,8 @@ import requests
 from azure.identity import DefaultAzureCredential
 from azure.mgmt.subscription import SubscriptionClient
 from spotinst_sdk2 import SpotinstSession
-from spotinst_sdk2.models.setup.azure import *
-
 from spotinst_sdk2.client import Client
+from spotinst_sdk2.models.setup.azure import *
 
 CUSTOM_ROLE_NAME = "{customRoleName}"
 SUBSCRIPTION_ID = "{subscriptionId}"
@@ -56,9 +55,8 @@ def get_subscription_name(subscription_id):
     credential = DefaultAzureCredential()
     subscription_client = SubscriptionClient(credential)
     subscription = subscription_client.subscriptions.get(subscription_id)
-    subscription_display_name = subscription.display_name
 
-    return subscription_display_name
+    return subscription.display_name
 
 
 def get_or_create_spot_account(subscription_id, name, token):
@@ -77,7 +75,7 @@ def get_or_create_spot_account(subscription_id, name, token):
     client = session.client("admin")
 
     existing_accounts = [account["account_id"] for account in client.get_accounts() if
-                         account["provider_external_id"] == subscription_id]
+                         account["provider_external_id"] == subscription_id and account["cloud_provider"] == 'AZURE']
     account_id = existing_accounts.pop() if len(existing_accounts) > 0 else None
 
     if not account_id:
@@ -161,7 +159,7 @@ def display_result(subscription, create_or_get_service_principal_response):
 
 
 def set_azure_credentials(
-        token, account_id, client_id, client_secret, tenant_id, subscription_id
+    token, account_id, client_id, client_secret, tenant_id, subscription_id
 ):
     """
     Set Azure credentials to Spot Account
@@ -228,12 +226,12 @@ def build_custom_role(custom_role_name, custom_role_json_local_path, subscriptio
 
 
 def create_required_parameters_for_spot_registrations(
-        subscription,
-        custom_role_name,
-        custom_role_json_local_path,
-        service_principal_name,
-        products,
-        app_registration_id=None
+    subscription,
+    custom_role_name,
+    custom_role_json_local_path,
+    service_principal_name,
+    products,
+    app_registration_id=None
 ):
     if does_subscription_exist_for_account(subscription):
         roles = []
@@ -467,8 +465,8 @@ def main():
 
     products = args.products
     if products is None:
-        print("INFO: Defaulting to all products.")
-        products = f"{Products.CORE} {Products.COST_INTELLIGENCE}"
+        print("INFO: Defaulting to core product set.")
+        products = f"{Products.CORE}"
 
     token = args.token
     custom_role_name_base = args.customRoleName
