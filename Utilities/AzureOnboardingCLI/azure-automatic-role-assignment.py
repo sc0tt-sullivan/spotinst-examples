@@ -1,7 +1,6 @@
 #!/usr/bin/env
 
 import argparse
-import json
 import re
 import subprocess
 import time
@@ -450,7 +449,14 @@ def login_to_azure():
     run_command(azure_login_cmd)
 
 
-def ensure_automatic_extension_install():
+def ensure_azure_cli_automatic_extension_install():
+    """
+    Some of the Azure CLI commands used by this script require az cli extensions.
+    If an extended command is run without extensions installed, the cli will prompt
+    to install the extension, getting in the way of the script.  This configuration
+    lets the script proceed without prompting, and automatically installs the required
+    extension.
+    """
     run_command('az config set',
                 'extension.use_dynamic_install=yes_without_prompt')
 
@@ -521,12 +527,12 @@ def main():
         if subscription_id:
             subscription_ids = [subscription_id]
         else:
-            ensure_automatic_extension_install()
+            ensure_azure_cli_automatic_extension_install()
             subscription_ids = get_all_subscriptions_in_tenant()
             log(f"Found {len(subscription_ids)} subscriptions in tenant.")
 
         number_successfully_onboarded = 0
-        number_failed_onboarded = 0
+        failed_subscriptions = []
 
         for index, subscription_id in enumerate(subscription_ids):
             try:
@@ -567,12 +573,12 @@ def main():
             except SpotinstClientException as e:
                 # the spotinst token is invalid. halt all onboarding
                 log(f"Spot client exception.  Error: {str(e)}")
-                number_failed_onboarded += 1
+                failed_subscriptions.append((subscription_id, subscription_name))
                 break
             except ConnectTimeout as e:
                 # the Spot API cannot be reached.  halt all onboarding
                 log(f"Spot client connection has timed out.  Error: {str(e)}")
-                number_failed_onboarded += 1
+                failed_subscriptions.append((subscription_id, subscription_name))
                 break
             except Exception as e:
                 '''
@@ -583,17 +589,20 @@ def main():
                     f"Error occurred during onboarding process for subscription {subscription_name} - {subscription_id}. Reason: {str(e)}",
                     LogLevel.ERROR,
                 )
-                number_failed_onboarded += 1
+                failed_subscriptions.append((subscription_id, subscription_name))
                 continue
 
         # print the summary here
         log("Operation completed.  Summary:")
         log(f"    Number of subscriptions attempted:                {len(subscription_ids)}")
         log(f"    Number of subscriptions onboarded successfully:   {number_successfully_onboarded}")
-        log(f"    Number of subscriptions onboard was unsuccessful: {number_failed_onboarded}")
+        log(f"    Number of subscriptions onboard was unsuccessful: {len(failed_subscriptions)}")
+        if len(failed_subscriptions) > 0:
+            log(f"    List of subscriptions onboard was unsuccessful:")
+            for subscription_name, subscription_id in failed_subscriptions:
+                log(f"    {subscription_name} - {subscription_id}")
     except Exception as e:
         log(f"A general error occurred during onboarding. Errors: {e}", LogLevel.ERROR)
-
 
 if __name__ == "__main__":
     main()
