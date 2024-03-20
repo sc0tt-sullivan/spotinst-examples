@@ -600,7 +600,7 @@ def main():
         if len(failed_subscriptions) > 0:
             log(f"    List of subscriptions onboard was unsuccessful:")
             for subscription_name, subscription_id in failed_subscriptions:
-                log(f"    {subscription_name} - {subscription_id}")
+                log(f"        {subscription_name} - {subscription_id}")
     except Exception as e:
         log(f"A general error occurred during onboarding. Errors: {e}", LogLevel.ERROR)
 
