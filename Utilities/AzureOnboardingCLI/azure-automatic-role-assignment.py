@@ -449,7 +449,7 @@ def login_to_azure():
     run_command(azure_login_cmd)
 
 
-def ensure_azure_cli_automatic_extension_install():
+def ensure_azure_cli_automatic_extension_install_enabled():
     """
     Some of the Azure CLI commands used by this script require az cli extensions.
     If an extended command is run without extensions installed, the cli will prompt
@@ -527,7 +527,7 @@ def main():
         if subscription_id:
             subscription_ids = [subscription_id]
         else:
-            ensure_azure_cli_automatic_extension_install()
+            ensure_azure_cli_automatic_extension_install_enabled()
             subscription_ids = get_all_subscriptions_in_tenant()
             log(f"Found {len(subscription_ids)} subscriptions in tenant.")
 
